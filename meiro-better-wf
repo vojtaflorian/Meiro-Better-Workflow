@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Meiro Better Workflow 
 // @namespace    http://tampermonkey.net/
-// @version      2025-03-12
+// @version      2025-03-18
 // @description  Meiro Better Workflow 
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -18,7 +18,7 @@
 // Funkce pro sledování textarea elementu a výpočet velikosti obsahu editoru
 function monitorTextarea() {
     // Zkontrolujeme, zda aktuální URL obsahuje požadovanou cestu
-    if (!window.location.href.includes("*.meiro.io/channels/emails/campaigns")) {
+    if (!window.location.href.includes("meiro.io/channels/emails/campaigns")) {
         console.log('🔒 Meiro Better WF: Skript není spuštěn, URL neodpovídá požadovanému vzoru.');
         return; // Skript se nespustí, pokud URL neodpovídá
     }
