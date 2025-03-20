@@ -14,7 +14,91 @@
 
 (function () {
     'use strict';
+//***********************************************************
+// Vyplnění Send to a Profile ID dynamicky v Campaigns
+if (!window.location.href.includes("meiro.io/channels/emails/campaigns")) {
+        console.log('🔒 Meiro Better WF: Skript není spuštěn, URL neodpovídá požadovanému vzoru.');
+        return; // Skript se nespustí, pokud URL neodpovídá
+    }
 
+    let userEmail = null;
+    const profileIDToFill = "00046ff9-a1cc-16ca-cc7d-f02f6ff6b40a";
+
+    function getUserEmail() {
+        let userMenu = document.querySelector("[data-testid='user-menu']");
+        if (userMenu) {
+            userMenu.click(); // Otevře uživatelské menu
+            setTimeout(() => {
+                let emailElement = document.querySelector(".clYaW"); // Hledá email uživatele
+                if (emailElement) {
+                    userEmail = emailElement.textContent.trim();
+                    console.log("Meiro Better WF: Nalezen email uživatele:", userEmail);
+                    fillForm(); // Vyplní formulář
+                }
+            }, 500);
+        }
+    }
+
+    function simulateReactSelect(input, value) {
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+        nativeInputValueSetter.call(input, value);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    function fillForm() {
+        if (!userEmail) {
+            console.log("Meiro Better WF: Čekám na získání emailu uživatele...");
+            return;
+        }
+
+        console.log("Meiro Better WF: Vyplňuji email:", userEmail);
+
+        // Najít emailový select field
+        let emailContainer = document.querySelector("[data-testid='send-test-emails-select']");
+        if (emailContainer) {
+            let emailInput = emailContainer.querySelector(".react-select-redux-field__input input");
+            if (emailInput && emailInput.value === "") {
+                console.log("Meiro Better WF: Klikám na emailový input...");
+                emailInput.focus();
+                simulateReactSelect(emailInput, userEmail);
+
+                setTimeout(() => {
+                    let dropdownMenu = document.querySelector(".react-select-redux-field__menu");
+                    if (dropdownMenu) {
+                        let addEmailOption = dropdownMenu.querySelector("[data-testid='select-field-option']");
+                        if (addEmailOption && addEmailOption.textContent.includes(userEmail)) {
+                            console.log("Meiro Better WF: Klikám na možnost přidání emailu:", userEmail);
+                            addEmailOption.click();
+                        }
+                    }
+                }, 500);
+            }
+        } else {
+            console.log("Meiro Better WF: Emailový input nenalezen.");
+        }
+
+        // Najít input pro Profile ID a správně ho vyplnit
+        let profileInput = document.querySelector("input[data-testid='send-test-emails-profile-id']");
+        if (profileInput && profileInput.value !== profileIDToFill) {
+            console.log("Meiro Better WF: Vyplňuji Profile ID...");
+            simulateReactSelect(profileInput, profileIDToFill);
+        }
+    }
+
+    // Po načtení stránky zkusit získat email
+    setTimeout(getUserEmail, 1000);
+
+    // Opakovaně zkoušet vyplnění každou sekundu, dokud není úspěšné
+    let checkInterval = setInterval(() => {
+        fillForm();
+        if (document.querySelector(".react-select-redux-field__multi-value") &&
+            document.querySelector("input[data-testid='send-test-emails-profile-id']").value === profileIDToFill) {
+            clearInterval(checkInterval);
+            console.log("Meiro Better WF: Formulář úspěšně vyplněn.");
+        }
+    }, 1000);
+//***********************************************************
 // Funkce pro sledování textarea elementu a výpočet velikosti obsahu editoru
 function monitorTextarea() {
     // Zkontrolujeme, zda aktuální URL obsahuje požadovanou cestu
