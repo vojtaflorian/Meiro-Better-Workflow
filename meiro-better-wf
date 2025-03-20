@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Meiro Better Workflow 
 // @namespace    http://tampermonkey.net/
-// @version      2025-03-20
+// @version      2025-03-20_3
 // @description  Meiro Better Workflow 
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -14,6 +14,34 @@
 
 (function () {
     'use strict';
+    //***********************************************************
+    // Automatické řazení na seznamech od naposledy editovaných
+    function clickSortButton() {
+        // Najdeme všechna tlačítka s třídou 'SjcAn'
+        let buttons = document.querySelectorAll("button.SjcAn");
+
+        // Hledáme tlačítko, které obsahuje text "Modified"
+        let targetButton = Array.from(buttons).find(btn => btn.textContent.trim().toLowerCase().includes("modified"));
+
+        if (targetButton) {
+            console.log("Meiro Better WF: Tlačítko nalezeno, klikám dvakrát...");
+            targetButton.click(); // První klik (obrácené pořadí)
+            targetButton.click(); // Druhý klik (správné pořadí)
+        } else {
+            console.log("Meiro Better WF: Tlačítko obsahující 'Modified' nenalezeno.");
+        }
+    }
+
+    // Sledujeme, kdy se prvek objeví na stránce
+    let observer3 = new MutationObserver(() => {
+        if (document.querySelector("button.SjcAn")) {
+            clickSortButton();
+            observer3.disconnect(); // Přestaneme sledovat změny
+        }
+    });
+
+    // Spustíme sledování celého <body>
+    observer3.observe(document.body, { childList: true, subtree: true });   
 //***********************************************************
 // Vyplnění Send to a Profile ID dynamicky v Campaigns
 if (!window.location.href.includes("meiro.io/channels/emails/campaigns")) {
@@ -265,70 +293,8 @@ const observer2 = new MutationObserver(() => {
 });
 
 observer2.observe(document.body, { childList: true, subtree: true });
-    //********************* INPUTy - roztahování //********************************** primárně v campaigns
-/*
-
-    function triggerEvents(element) {
-        // Simulace vstupu pro editor (React / Vue fix)
-        let nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
-        if (nativeSetter) {
-            nativeSetter.call(element, element.value);
-        }
-
-        // Vyvolání událostí pro synchronizaci s editorem
-        element.dispatchEvent(new Event("input", { bubbles: true }));
-        element.dispatchEvent(new Event("change", { bubbles: true }));
-        element.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "a" }));
-        element.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: "a" }));
-    }
-
-    function enhanceTextInputs() {
-        document.querySelectorAll('input[name="data.input.text"]').forEach(input => {
-            if (!input.dataset.enhanced) {
-                console.log("🔄 Přidávám textarea pro input:", input);
-
-                // Vytvoření textarea
-                let textarea = document.createElement("textarea");
-                textarea.className = input.className;
-                textarea.name = input.name + "_textarea";
-                textarea.id = input.id + "_textarea";
-                textarea.setAttribute("autocomplete", "off");
-                textarea.value = input.value; // Nastavení hodnoty textarea
-                textarea.style.resize = "both";
-                textarea.style.width = "100%";
-                textarea.style.minHeight = "180px";
-                textarea.style.overflow = "auto";
-                textarea.style.display = "block";
-
-                // Skrytí původního inputu, ale ponechání v DOM
-                input.style.display = "none";
-
-                // Při změně v textarea aktualizovat původní input
-                textarea.addEventListener("input", function() {
-                    input.value = textarea.value;
-                    triggerEvents(input); // Spustí události, aby editor zaznamenal změnu
-                });
-
-                // Vložit textarea hned před původní input
-                input.parentNode.insertBefore(textarea, input);
-
-                // Označení, že input byl upraven (aby se neopakovalo)
-                input.dataset.enhanced = "true";
-
-                console.log("✅ Přidáno textarea pro:", input);
-            }
-        });
-    }
-
-    // Spuštění po načtení stránky s prodlevou (pro frameworky jako React)
-    setTimeout(enhanceTextInputs, 2000);
-
-    // Observer pro dynamicky načítané prvky
-    const observer3 = new MutationObserver(enhanceTextInputs);
-    observer3.observe(document.body, { childList: true, subtree: true });
-*/
-
-    // ******************** Začátek CTA BUTTON **************************
+    //***********************************************************
+    // ******************** CTA DELETE button v popupu, vždy aktivní pro "enter" **************************
     (function() {
         let intervalId = null;
 
