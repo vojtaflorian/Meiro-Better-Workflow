@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Meiro Better Workflow 
+// @name         Meiro Better Workflow
 // @namespace    http://tampermonkey.net/
-// @version      2025-03-20_3
-// @description  Meiro Better Workflow 
+// @version      2025-03-21
+// @description  Meiro Better Workflow
 // @author       Vojta Florian
 // @match        *.meiro.io/*
 // @match        *.meiro.io/*
@@ -44,11 +44,11 @@
     observer3.observe(document.body, { childList: true, subtree: true });   
 //***********************************************************
 // Vyplnění Send to a Profile ID dynamicky v Campaigns
-if (!window.location.href.includes("meiro.io/channels/emails/campaigns")) {
-        console.log('🔒 Meiro Better WF: Skript není spuštěn, URL neodpovídá požadovanému vzoru.');
-        return; // Skript se nespustí, pokud URL neodpovídá
-    }
-
+const onCampaignPage = window.location.href.includes("meiro.io/channels/emails/campaigns");
+if (!onCampaignPage) {
+    console.log('🔒 Meiro Better WF: Nespouštím část pro Send to a Profile ID – URL neodpovídá');
+}
+if (onCampaignPage) {
     let userEmail = null;
     const profileIDToFill = "00046ff9-a1cc-16ca-cc7d-f02f6ff6b40a";
 
@@ -116,8 +116,6 @@ if (!window.location.href.includes("meiro.io/channels/emails/campaigns")) {
 
     // Po načtení stránky zkusit získat email
     setTimeout(getUserEmail, 1000);
-
-    // Opakovaně zkoušet vyplnění každou sekundu, dokud není úspěšné
     let checkInterval = setInterval(() => {
         fillForm();
         if (document.querySelector(".react-select-redux-field__multi-value") &&
@@ -126,12 +124,13 @@ if (!window.location.href.includes("meiro.io/channels/emails/campaigns")) {
             console.log("Meiro Better WF: Formulář úspěšně vyplněn.");
         }
     }, 1000);
+}
 //***********************************************************
 // Funkce pro sledování textarea elementu a výpočet velikosti obsahu editoru
 function monitorTextarea() {
     // Zkontrolujeme, zda aktuální URL obsahuje požadovanou cestu
     if (!window.location.href.includes("meiro.io/channels/emails/campaigns")) {
-        console.log('🔒 Meiro Better WF: Skript není spuštěn, URL neodpovídá požadovanému vzoru.');
+        console.log('🔒 Meiro Better WF: HTML size Skript není spuštěn, URL neodpovídá požadovanému vzoru.');
         return; // Skript se nespustí, pokud URL neodpovídá
     }
 
@@ -204,37 +203,40 @@ function addStyles() {
     var style = document.createElement('style');
     style.type = 'text/css';
     style.innerHTML = `
-        @media (max-width: 1250px) {
-            .dyn_width_small div div section{
-                max-width: 90% !important;
-                width: 90% !important;
-            }
+    @media (max-width: 1250px) {
+        .dyn_width_small div div section{
+            max-width: 90% !important;
+            width: 90% !important;
         }
+    }
 
-        @media (min-width: 1320px) {
-            .dyn_width_large div div section{
-                min-width: 95% !important;
-            }
+    @media (min-width: 1320px) {
+        .dyn_width_large div div section{
+            min-width: 95% !important;
         }
+    }
 
-        .max-width-92 { min-width: 92% !important; }
-        .max-width-89 { min-width: 89% !important; }
-        .
-        .flex-730 { flex: 0 0 730px; }
-        .flex-500 { flex: 0 0 500px; }
-        .TextInput_wrapper__6i7yo .TextInput_row__J20k3 .TextInput_warningWrapper__20GtL {
-            min-width: 450px !important;
-        }
-        .width-auto-content { width: -webkit-fill-available; max-width: -webkit-fill-available; }
-        .EmailEditor_emailEditor__18vqj { width: auto !important; }
-        .wrapper { max-width: 1600px !important; }
-        .files .scrollable.files-content {
-            max-height: 350px !important;
-        }
-        /*aktivni*/
-        .width-auto-content { width: -webkit-fill-available !important; max-width: -webkit-fill-available !important; flex: auto !important;}
-        flex-auto { flex: auto !important; }
-    `;
+    .max-width-92 { min-width: 92% !important; }
+    .max-width-89 { min-width: 89% !important; }
+    /* Odstranit nebo opravit následující řádek */
+    /* . */
+
+    .flex-730 { flex: 0 0 730px; }
+    .flex-500 { flex: 0 0 500px; }
+    .TextInput_wrapper__6i7yo .TextInput_row__J20k3 .TextInput_warningWrapper__20GtL {
+        min-width: 450px !important;
+    }
+    .width-auto-content { width: -webkit-fill-available; max-width: -webkit-fill-available; }
+    .EmailEditor_emailEditor__18vqj { width: auto !important; }
+    .wrapper { max-width: 1600px !important; }
+    .files .scrollable.files-content {
+        max-height: 350px !important;
+    }
+    /*aktivni*/
+    .width-fill-content { width: -webkit-fill-available !important; max-width: -webkit-fill-available !important; flex: auto !important;}
+    .width-400 { width: 400px !important;}
+    flex-auto { flex: auto !important; }
+`;
     document.head.appendChild(style);
     console.log("Meiro Better WF: Styly úspěšně přidány.");
 }
@@ -244,12 +246,13 @@ function addClasses() {
     console.log("Meiro Better WF: Hledám prvky pro přidání tříd...");
 
     const classMap = {
-        'content-wrap': ['width-auto-content'],
-        'sm6GI': ['width-auto-content'], // segments
-        '_9rPmH': ['width-auto-content'], // segments
-        'ENn0I': ['width-auto-content'], // channels hlavička
-        '_748bX': ['width-auto-content'], // popup-banners hlavička
-        'yHmIT': ['width-auto-content'] // channels/emails/campaigns hlavička
+        'content-wrap': ['width-fill-content'],
+        'sm6GI': ['width-fill-content'], // segments
+        '_9rPmH': ['width-fill-content'], // segments
+        'ENn0I': ['width-fill-content'], // channels hlavička
+        '_748bX': ['width-fill-content'], // popup-banners hlavička
+        'yHmIT': ['width-fill-content'], // channels/emails/campaigns hlavička
+        'box-border': ['width-400']
         //'_9rPmH': ['width-auto-content', 'flex-auto'] // segments
     };
 
