@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Meiro Better Workflow
 // @namespace    http://tampermonkey.net/
-// @version      2025-03-21
+// @version      2025-03-28
 // @description  Meiro Better Workflow
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -234,7 +234,7 @@ function addStyles() {
     }
     /*aktivni*/
     .width-fill-content { width: -webkit-fill-available !important; max-width: -webkit-fill-available !important; flex: auto !important;}
-    .width-400 { width: 400px !important;}
+    .width-auto { width: auto !important;}
     flex-auto { flex: auto !important; }
 `;
     document.head.appendChild(style);
@@ -252,7 +252,7 @@ function addClasses() {
         'ENn0I': ['width-fill-content'], // channels hlavička
         '_748bX': ['width-fill-content'], // popup-banners hlavička
         'yHmIT': ['width-fill-content'], // channels/emails/campaigns hlavička
-        'box-border': ['width-400']
+        'box-border': ['width-auto']
         //'_9rPmH': ['width-auto-content', 'flex-auto'] // segments
     };
 
