@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Meiro Better Workflow
 // @namespace    http://tampermonkey.net/
-// @version      2025-03-28
+// @version      2025-06-02
 // @description  Meiro Better Workflow
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -50,7 +50,7 @@ if (!onCampaignPage) {
 }
 if (onCampaignPage) {
     let userEmail = null;
-    const profileIDToFill = "00046ff9-a1cc-16ca-cc7d-f02f6ff6b40a";
+    const profileIDToFill = "00059461-1b48-f552-3d8c-9f0422f5aef8"; // profil ID pro předvyplnění v Campaigns
 
     function getUserEmail() {
         let userMenu = document.querySelector("[data-testid='user-menu']");
