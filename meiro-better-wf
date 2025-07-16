@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Meiro Better Workflow
 // @namespace    http://tampermonkey.net/
-// @version      2025-06-02
-// @description  Meiro Better Workflow
+// @version      2025-07-16
+// @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
 // @match        *.meiro.io/*
@@ -14,288 +14,384 @@
 
 (function () {
     'use strict';
+
+    // Global storage for cleanup
+    let activeIntervals = [];
+
+    // Cleanup on page unload to prevent memory leaks
+    window.addEventListener('beforeunload', () => {
+        activeIntervals.forEach(id => clearInterval(id));
+        activeIntervals = [];
+    });
+
     //***********************************************************
     // Automatické řazení na seznamech od naposledy editovaných
     function clickSortButton() {
-        // Najdeme všechna tlačítka s třídou 'SjcAn'
-        let buttons = document.querySelectorAll("button.SjcAn");
+        console.log("Meiro Better WF: Hledám Modified tlačítko...");
 
-        // Hledáme tlačítko, které obsahuje text "Modified"
-        let targetButton = Array.from(buttons).find(btn => btn.textContent.trim().toLowerCase().includes("modified"));
+        // Najdeme tlačítka obsahující text "Modified" nebo podobný
+        const allButtons = document.querySelectorAll('button');
+        console.log(`Meiro Better WF: Nalezeno ${allButtons.length} tlačítek celkem`);
+
+        // Hledáme tlačítko obsahující "Modified" v textu
+        let targetButton = null;
+        const searchTerms = ['modified', 'upraveno', 'změněno', 'modified at'];
+
+        allButtons.forEach((btn, index) => {
+            const text = btn.textContent.trim().toLowerCase();
+            console.log(`Meiro Better WF: Tlačítko ${index}: "${btn.textContent.trim()}"`);
+
+            // Zkontroluj jestli obsahuje hledaný text
+            if (searchTerms.some(term => text.includes(term))) {
+                targetButton = btn;
+                console.log(`✅ Meiro Better WF: Nalezeno řazící tlačítko: "${btn.textContent.trim()}"`);
+            }
+        });
 
         if (targetButton) {
-            console.log("Meiro Better WF: Tlačítko nalezeno, klikám dvakrát...");
-            targetButton.click(); // První klik (obrácené pořadí)
-            targetButton.click(); // Druhý klik (správné pořadí)
-        } else {
-            console.log("Meiro Better WF: Tlačítko obsahující 'Modified' nenalezeno.");
-        }
-    }
+            console.log(`Meiro Better WF: Klikám na tlačítko: "${targetButton.textContent.trim()}"`);
 
-    // Sledujeme, kdy se prvek objeví na stránce
-    let observer3 = new MutationObserver(() => {
-        if (document.querySelector("button.SjcAn")) {
-            clickSortButton();
-            observer3.disconnect(); // Přestaneme sledovat změny
-        }
-    });
+            try {
+                // První klik pro změnu řazení
+                targetButton.click();
+                console.log("Meiro Better WF: První klik proveden");
 
-    // Spustíme sledování celého <body>
-    observer3.observe(document.body, { childList: true, subtree: true });   
-//***********************************************************
-// Vyplnění Send to a Profile ID dynamicky v Campaigns
-const onCampaignPage = window.location.href.includes("meiro.io/channels/emails/campaigns");
-if (!onCampaignPage) {
-    console.log('🔒 Meiro Better WF: Nespouštím část pro Send to a Profile ID – URL neodpovídá');
-}
-if (onCampaignPage) {
-    let userEmail = null;
-    const profileIDToFill = "00059461-1b48-f552-3d8c-9f0422f5aef8"; // profil ID pro předvyplnění v Campaigns
-
-    function getUserEmail() {
-        let userMenu = document.querySelector("[data-testid='user-menu']");
-        if (userMenu) {
-            userMenu.click(); // Otevře uživatelské menu
-            setTimeout(() => {
-                let emailElement = document.querySelector(".clYaW"); // Hledá email uživatele
-                if (emailElement) {
-                    userEmail = emailElement.textContent.trim();
-                    console.log("Meiro Better WF: Nalezen email uživatele:", userEmail);
-                    fillForm(); // Vyplní formulář
-                }
-            }, 500);
-        }
-    }
-
-    function simulateReactSelect(input, value) {
-        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
-        nativeInputValueSetter.call(input, value);
-        input.dispatchEvent(new Event("input", { bubbles: true }));
-        input.dispatchEvent(new Event("change", { bubbles: true }));
-    }
-
-    function fillForm() {
-        if (!userEmail) {
-            console.log("Meiro Better WF: Čekám na získání emailu uživatele...");
-            return;
-        }
-
-        console.log("Meiro Better WF: Vyplňuji email:", userEmail);
-
-        // Najít emailový select field
-        let emailContainer = document.querySelector("[data-testid='send-test-emails-select']");
-        if (emailContainer) {
-            let emailInput = emailContainer.querySelector(".react-select-redux-field__input input");
-            if (emailInput && emailInput.value === "") {
-                console.log("Meiro Better WF: Klikám na emailový input...");
-                emailInput.focus();
-                simulateReactSelect(emailInput, userEmail);
-
+                // Druhý klik po krátké pauze pro správné pořadí (nejnovější nahoře)
                 setTimeout(() => {
-                    let dropdownMenu = document.querySelector(".react-select-redux-field__menu");
-                    if (dropdownMenu) {
-                        let addEmailOption = dropdownMenu.querySelector("[data-testid='select-field-option']");
-                        if (addEmailOption && addEmailOption.textContent.includes(userEmail)) {
-                            console.log("Meiro Better WF: Klikám na možnost přidání emailu:", userEmail);
-                            addEmailOption.click();
-                        }
+                    targetButton.click();
+                    console.log("Meiro Better WF: Druhý klik proveden - řazení podle nejnovějších");
+                }, 300);
+
+                return true; // Success, stop searching
+            } catch (error) {
+                console.error("Meiro Better WF: Chyba při klikání:", error);
+                return false;
+            }
+        } else {
+            console.log("Meiro Better WF: Modified tlačítko nenalezeno");
+            return false; // Continue searching
+        }
+    }
+
+    // Vylepšený observer s opakovaným hledáním
+    function setupSortObserver() {
+        let attempts = 0;
+        const maxAttempts = 20; // Maximálně 20 pokusů (10 sekund)
+        let searchInterval;
+
+        function searchForSortButton() {
+            attempts++;
+            console.log(`Meiro Better WF: Pokus ${attempts}/${maxAttempts} - hledám sort tlačítka`);
+
+            const success = clickSortButton();
+
+            if (success) {
+                console.log("Meiro Better WF: Sort tlačítko úspěšně nalezeno a kliknuto");
+                clearInterval(searchInterval);
+                const index = activeIntervals.indexOf(searchInterval);
+                if (index > -1) activeIntervals.splice(index, 1);
+            } else if (attempts >= maxAttempts) {
+                console.log("Meiro Better WF: Maximální počet pokusů dosažen, zastavuji hledání");
+                clearInterval(searchInterval);
+                const index = activeIntervals.indexOf(searchInterval);
+                if (index > -1) activeIntervals.splice(index, 1);
+            }
+        }
+
+        // Začni hledat po krátkém zpoždění
+        setTimeout(() => {
+            searchInterval = setInterval(searchForSortButton, 500);
+            activeIntervals.push(searchInterval);
+
+            // První pokus ihned
+            searchForSortButton();
+        }, 1000);
+    }
+
+    // Spusť setup po načtení stránky
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupSortObserver);
+    } else {
+        setupSortObserver();
+    }
+
+    //***********************************************************
+    // Vyplnění Send to a Profile ID dynamicky v Campaigns
+    const onCampaignPage = window.location.href.includes("meiro.io/channels/emails/campaigns");
+    if (!onCampaignPage) {
+        console.log('🔒 Meiro Better WF: Nespouštím část pro Send to a Profile ID – URL neodpovídá');
+    }
+    if (onCampaignPage) {
+        let userEmail = null;
+        const profileIDToFill = "00059461-1b48-f552-3d8c-9f0422f5aef8"; // profil ID pro předvyplnění v Campaigns
+
+        function getUserEmail() {
+            let userMenu = document.querySelector("[data-testid='user-menu']");
+            if (userMenu) {
+                userMenu.click(); // Otevře uživatelské menu
+                setTimeout(() => {
+                    let emailElement = document.querySelector(".clYaW"); // Hledá email uživatele
+                    if (emailElement) {
+                        userEmail = emailElement.textContent.trim();
+                        console.log("Meiro Better WF: Nalezen email uživatele:", userEmail);
+                        fillForm(); // Vyplní formulář
                     }
                 }, 500);
             }
-        } else {
-            console.log("Meiro Better WF: Emailový input nenalezen.");
         }
 
-        // Najít input pro Profile ID a správně ho vyplnit
-        let profileInput = document.querySelector("input[data-testid='send-test-emails-profile-id']");
-        if (profileInput && profileInput.value !== profileIDToFill) {
-            console.log("Meiro Better WF: Vyplňuji Profile ID...");
-            simulateReactSelect(profileInput, profileIDToFill);
+        function simulateReactSelect(input, value) {
+            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+            nativeInputValueSetter.call(input, value);
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            input.dispatchEvent(new Event("change", { bubbles: true }));
         }
-    }
 
-    // Po načtení stránky zkusit získat email
-    setTimeout(getUserEmail, 1000);
-    let checkInterval = setInterval(() => {
-        fillForm();
-        if (document.querySelector(".react-select-redux-field__multi-value") &&
-            document.querySelector("input[data-testid='send-test-emails-profile-id']").value === profileIDToFill) {
-            clearInterval(checkInterval);
-            console.log("Meiro Better WF: Formulář úspěšně vyplněn.");
+        function fillForm() {
+            if (!userEmail) {
+                console.log("Meiro Better WF: Čekám na získání emailu uživatele...");
+                return;
+            }
+
+            console.log("Meiro Better WF: Vyplňuji email:", userEmail);
+
+            // Najít emailový select field
+            let emailContainer = document.querySelector("[data-testid='send-test-emails-select']");
+            if (emailContainer) {
+                let emailInput = emailContainer.querySelector(".react-select-redux-field__input input");
+                if (emailInput && emailInput.value === "") {
+                    console.log("Meiro Better WF: Klikám na emailový input...");
+                    emailInput.focus();
+                    simulateReactSelect(emailInput, userEmail);
+
+                    setTimeout(() => {
+                        let dropdownMenu = document.querySelector(".react-select-redux-field__menu");
+                        if (dropdownMenu) {
+                            let addEmailOption = dropdownMenu.querySelector("[data-testid='select-field-option']");
+                            if (addEmailOption && addEmailOption.textContent.includes(userEmail)) {
+                                console.log("Meiro Better WF: Klikám na možnost přidání emailu:", userEmail);
+                                addEmailOption.click();
+                            }
+                        }
+                    }, 500);
+                }
+            } else {
+                console.log("Meiro Better WF: Emailový input nenalezen.");
+            }
+
+            // Najít input pro Profile ID a správně ho vyplnit
+            let profileInput = document.querySelector("input[data-testid='send-test-emails-profile-id']");
+            if (profileInput && profileInput.value !== profileIDToFill) {
+                console.log("Meiro Better WF: Vyplňuji Profile ID...");
+                simulateReactSelect(profileInput, profileIDToFill);
+            }
         }
-    }, 1000);
-}
-//***********************************************************
-// Funkce pro sledování textarea elementu a výpočet velikosti obsahu editoru
-function monitorTextarea() {
-    // Zkontrolujeme, zda aktuální URL obsahuje požadovanou cestu
-    if (!window.location.href.includes("meiro.io/channels/emails/campaigns")) {
-        console.log('🔒 Meiro Better WF: HTML size Skript není spuštěn, URL neodpovídá požadovanému vzoru.');
-        return; // Skript se nespustí, pokud URL neodpovídá
+
+        // Po načtení stránky zkusit získat email
+        setTimeout(getUserEmail, 1000);
+
+        // Improved interval with max attempts to prevent infinite polling
+        let attempts = 0;
+        let checkInterval = setInterval(() => {
+            attempts++;
+            fillForm();
+            if (document.querySelector(".react-select-redux-field__multi-value") &&
+                document.querySelector("input[data-testid='send-test-emails-profile-id']").value === profileIDToFill) {
+                clearInterval(checkInterval);
+                console.log("Meiro Better WF: Formulář úspěšně vyplněn.");
+            } else if (attempts > 30) { // Stop after 30 seconds
+                clearInterval(checkInterval);
+                console.log("Meiro Better WF: Timeout při vyplňování formuláře.");
+            }
+        }, 1000);
+        activeIntervals.push(checkInterval);
     }
 
-    console.log("🔎 Funkce pro monitorování textarea spuštěna...");
+    //***********************************************************
 
-    const textareaElement = document.querySelector('textarea.ace_text-input');
+    //***********************************************************
+    // Funkce pro sledování textarea elementu a výpočet velikosti obsahu editoru
+    function monitorTextarea() {
+        // Zkontrolujeme, zda aktuální URL obsahuje požadovanou cestu
+        if (!window.location.href.includes("meiro.io/channels/emails/campaigns")) {
+            console.log('🔒 Meiro Better WF: HTML size Skript není spuštěn, URL neodpovídá požadovanému vzoru.');
+            return; // Skript se nespustí, pokud URL neodpovídá
+        }
 
-    // Vytvoření nového divu pro zobrazení velikosti, pokud ještě neexistuje
-    let sizeDisplayElement = document.getElementById('size-display');
-    if (!sizeDisplayElement) {
-        sizeDisplayElement = document.createElement('div');
-        sizeDisplayElement.id = 'size-display';
-        sizeDisplayElement.style.position = 'fixed';
-        sizeDisplayElement.style.bottom = '10px';
-        sizeDisplayElement.style.right = '10px';
-        sizeDisplayElement.style.padding = '10px';
-        sizeDisplayElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        sizeDisplayElement.style.color = 'white';
-        sizeDisplayElement.style.borderRadius = '5px';
-        sizeDisplayElement.style.fontSize = '14px';
-        document.body.appendChild(sizeDisplayElement); // Přidáme div na stránku
-    }
+        console.log("🔎 Funkce pro monitorování textarea spuštěna...");
 
-    if (textareaElement) {
-        // Najdeme nejbližší Ace Editor
-        const aceEditorElement = textareaElement.closest('.ace_editor');
+        const textareaElement = document.querySelector('textarea.ace_text-input');
 
-        if (aceEditorElement && window.ace) {
-            // Získání instance Ace Editoru
-            const aceEditor = window.ace.edit(aceEditorElement);
+        // Vytvoření nového divu pro zobrazení velikosti, pokud ještě neexistuje
+        let sizeDisplayElement = document.getElementById('size-display');
+        if (!sizeDisplayElement) {
+            sizeDisplayElement = document.createElement('div');
+            sizeDisplayElement.id = 'size-display';
+            sizeDisplayElement.style.position = 'fixed';
+            sizeDisplayElement.style.bottom = '10px';
+            sizeDisplayElement.style.right = '10px';
+            sizeDisplayElement.style.padding = '10px';
+            sizeDisplayElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            sizeDisplayElement.style.color = 'white';
+            sizeDisplayElement.style.borderRadius = '5px';
+            sizeDisplayElement.style.fontSize = '14px';
+            sizeDisplayElement.style.zIndex = '10000';
+            document.body.appendChild(sizeDisplayElement); // Přidáme div na stránku
+        }
 
-            // Získání kompletního obsahu editoru
-            const textContent = aceEditor.getValue();
+        if (textareaElement) {
+            // Najdeme nejbližší Ace Editor
+            const aceEditorElement = textareaElement.closest('.ace_editor');
 
-            if (textContent.length > 0) {
-                // Převod textu na bajty pomocí TextEncoder (UTF-8)
-                const sizeInBytes = new TextEncoder().encode(textContent).length;
+            if (aceEditorElement && window.ace) {
+                // Získání instance Ace Editoru
+                const aceEditor = window.ace.edit(aceEditorElement);
+
+                // Získání kompletního obsahu editoru
+                const textContent = aceEditor.getValue();
+
+                if (textContent.length > 0) {
+                    // Převod textu na bajty pomocí TextEncoder (UTF-8) s fallback
+                    let sizeInBytes;
+                    try {
+                        sizeInBytes = new TextEncoder().encode(textContent).length;
+                    } catch (e) {
+                        // Fallback pro starší prohlížeče
+                        sizeInBytes = textContent.length * 2; // Aproximace pro UTF-8
+                    }
+                    const sizeInKB = (sizeInBytes / 1024).toFixed(2);
+                    console.log(`✅  Meiro Better WF: Ace Editor nalezen. Velikost obsahu: ${sizeInKB} KB`);
+
+                    // Zobrazení velikosti v divu
+                    sizeDisplayElement.innerHTML = `Velikost obsahu: ${sizeInKB} KB`;
+                } else {
+                    console.log('✅  Meiro Better WF: Ace Editor nalezen, ale obsah je prázdný.');
+                    sizeDisplayElement.innerHTML = "Velikost obsahu: 0 KB";
+                }
+            } else {
+                console.log('⚠️  Meiro Better WF: Ace Editor nebyl nalezen, počítám jen textarea.');
+                const textContent = textareaElement.value;
+                let sizeInBytes;
+                try {
+                    sizeInBytes = new TextEncoder().encode(textContent).length;
+                } catch (e) {
+                    sizeInBytes = textContent.length * 2;
+                }
                 const sizeInKB = (sizeInBytes / 1024).toFixed(2);
-                console.log(`✅  Meiro Better WF: Ace Editor nalezen. Velikost obsahu: ${sizeInKB} KB`);
+                console.log(`✅  Meiro Better WF: Velikost obsahu textarea: ${sizeInKB} KB`);
 
                 // Zobrazení velikosti v divu
                 sizeDisplayElement.innerHTML = `Velikost obsahu: ${sizeInKB} KB`;
-            } else {
-                console.log('✅  Meiro Better WF: Ace Editor nalezen, ale obsah je prázdný.');
-                sizeDisplayElement.innerHTML = "Velikost obsahu: 0 KB";
             }
         } else {
-            console.log('⚠️  Meiro Better WF: Ace Editor nebyl nalezen, počítám jen textarea.');
-            const textContent = textareaElement.value;
-            const sizeInBytes = new TextEncoder().encode(textContent).length;
-            const sizeInKB = (sizeInBytes / 1024).toFixed(2);
-            console.log(`✅  Meiro Better WF: Velikost obsahu textarea: ${sizeInKB} KB`);
-
-            // Zobrazení velikosti v divu
-            sizeDisplayElement.innerHTML = `Velikost obsahu: ${sizeInKB} KB`;
-        }
-    } else {
-        console.log('❌  Meiro Better WF: Textarea nenalezen.');
-        sizeDisplayElement.innerHTML = "Velikost obsahu: 0 KB";
-    }
-}
-
-setInterval(monitorTextarea, 3000);
-
-//********************************** Funkce pro aplikaci stylů **********************************
-// Funkce pro přidání stylů do hlavičky stránky
-function addStyles() {
-    console.log("Meiro Better WF: Přidávám styly...");
-
-    var style = document.createElement('style');
-    style.type = 'text/css';
-    style.innerHTML = `
-    @media (max-width: 1250px) {
-        .dyn_width_small div div section{
-            max-width: 90% !important;
-            width: 90% !important;
+            console.log('❌  Meiro Better WF: Textarea nenalezen.');
+            sizeDisplayElement.innerHTML = "Velikost obsahu: 0 KB";
         }
     }
 
-    @media (min-width: 1320px) {
-        .dyn_width_large div div section{
-            min-width: 95% !important;
+    // Start monitoring with cleanup tracking
+    const monitorInterval = setInterval(monitorTextarea, 3000);
+    activeIntervals.push(monitorInterval);
+
+    //********************************** Funkce pro aplikaci stylů **********************************
+    // Funkce pro přidání stylů do hlavičky stránky
+    function addStyles() {
+        console.log("Meiro Better WF: Přidávám styly...");
+
+        var style = document.createElement('style');
+        style.type = 'text/css';
+        style.innerHTML = `
+        @media (max-width: 1250px) {
+            .dyn_width_small div div section{
+                max-width: 90% !important;
+                width: 90% !important;
+            }
         }
+
+        @media (min-width: 1320px) {
+            .dyn_width_large div div section{
+                min-width: 95% !important;
+            }
+        }
+
+        .max-width-92 { min-width: 92% !important; }
+        .max-width-89 { min-width: 89% !important; }
+
+        .flex-730 { flex: 0 0 730px; }
+        .flex-500 { flex: 0 0 500px; }
+        .TextInput_wrapper__6i7yo .TextInput_row__J20k3 .TextInput_warningWrapper__20GtL {
+            min-width: 450px !important;
+        }
+        .width-auto-content { width: -webkit-fill-available; max-width: -webkit-fill-available; }
+        .EmailEditor_emailEditor__18vqj { width: auto !important; }
+        .wrapper { max-width: 1600px !important; }
+        .files .scrollable.files-content {
+            max-height: 350px !important;
+        }
+        /*aktivni*/
+        .width-fill-content { width: -webkit-fill-available !important; max-width: -webkit-fill-available !important; flex: auto !important;}
+        .width-auto { width: auto !important;}
+        .flex-auto { flex: auto !important; }
+    `;
+        document.head.appendChild(style);
+        console.log("Meiro Better WF: Styly úspěšně přidány.");
     }
 
-    .max-width-92 { min-width: 92% !important; }
-    .max-width-89 { min-width: 89% !important; }
-    /* Odstranit nebo opravit následující řádek */
-    /* . */
+    // Funkce pro přidání nových tříd
+    function addClasses() {
+        console.log("Meiro Better WF: Hledám prvky pro přidání tříd...");
 
-    .flex-730 { flex: 0 0 730px; }
-    .flex-500 { flex: 0 0 500px; }
-    .TextInput_wrapper__6i7yo .TextInput_row__J20k3 .TextInput_warningWrapper__20GtL {
-        min-width: 450px !important;
-    }
-    .width-auto-content { width: -webkit-fill-available; max-width: -webkit-fill-available; }
-    .EmailEditor_emailEditor__18vqj { width: auto !important; }
-    .wrapper { max-width: 1600px !important; }
-    .files .scrollable.files-content {
-        max-height: 350px !important;
-    }
-    /*aktivni*/
-    .width-fill-content { width: -webkit-fill-available !important; max-width: -webkit-fill-available !important; flex: auto !important;}
-    .width-auto { width: auto !important;}
-    flex-auto { flex: auto !important; }
-`;
-    document.head.appendChild(style);
-    console.log("Meiro Better WF: Styly úspěšně přidány.");
-}
+        const classMap = {
+            'content-wrap': ['width-fill-content'],
+            'sm6GI': ['width-fill-content'], // segments
+            '_9rPmH': ['width-fill-content'], // segments
+            'ENn0I': ['width-fill-content'], // channels hlavička
+            '_748bX': ['width-fill-content'], // popup-banners hlavička
+            'yHmIT': ['width-fill-content'], // channels/emails/campaigns hlavička
+            'box-border': ['width-auto']
+        };
 
-// Funkce pro přidání nových tříd
-function addClasses() {
-    console.log("Meiro Better WF: Hledám prvky pro přidání tříd...");
+        let elementsUpdated = 0;
 
-    const classMap = {
-        'content-wrap': ['width-fill-content'],
-        'sm6GI': ['width-fill-content'], // segments
-        '_9rPmH': ['width-fill-content'], // segments
-        'ENn0I': ['width-fill-content'], // channels hlavička
-        '_748bX': ['width-fill-content'], // popup-banners hlavička
-        'yHmIT': ['width-fill-content'], // channels/emails/campaigns hlavička
-        'box-border': ['width-auto']
-        //'_9rPmH': ['width-auto-content', 'flex-auto'] // segments
-    };
-
-    let elementsUpdated = 0;
-
-    Object.entries(classMap).forEach(([targetClass, newClasses]) => {
-        document.querySelectorAll('.' + targetClass).forEach(element => {
-            newClasses.forEach(newClass => {
-                if (!element.classList.contains(newClass)) {
-                    element.classList.add(newClass);
-                    elementsUpdated++;
-                }
+        Object.entries(classMap).forEach(([targetClass, newClasses]) => {
+            document.querySelectorAll('.' + targetClass).forEach(element => {
+                newClasses.forEach(newClass => {
+                    if (!element.classList.contains(newClass)) {
+                        element.classList.add(newClass);
+                        elementsUpdated++;
+                    }
+                });
             });
         });
-    });
 
-    console.log(`Meiro Better WF: Přidány třídy u ${elementsUpdated} prvků.`);
-}
+        console.log(`Meiro Better WF: Přidány třídy u ${elementsUpdated} prvků.`);
+    }
 
-// Zajištění, že skript běží po načtení stránky
-(function init() {
-    console.log("Meiro Better WF: Spouštím skript...");
+    // Zajištění, že skript běží po načtení stránky
+    (function init() {
+        console.log("Meiro Better WF: Spouštím skript...");
 
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", () => {
-            console.log("Meiro Better WF: DOMContentLoaded detekováno");
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", () => {
+                console.log("Meiro Better WF: DOMContentLoaded detekováno");
+                addStyles();
+                addClasses();
+            });
+        } else {
+            console.log("Meiro Better WF: Dokument je již načten, provádím akce");
             addStyles();
             addClasses();
-        });
-    } else {
-        console.log("Meiro Better WF: Dokument je již načten, provádím akce");
-        addStyles();
+        }
+    })();
+
+    // Sleduje změny v DOM a aplikuje třídy na nově přidané prvky
+    const observer2 = new MutationObserver(() => {
+        console.log("Meiro Better WF: Detekována změna v DOM, znovu aplikuji třídy...");
         addClasses();
-    }
-})();
+    });
 
-// Sleduje změny v DOM a aplikuje třídy na nově přidané prvky
-const observer2 = new MutationObserver(() => {
-    console.log("Meiro Better WF: Detekována změna v DOM, znovu aplikuji třídy...");
-    addClasses();
-});
+    observer2.observe(document.body, { childList: true, subtree: true });
 
-observer2.observe(document.body, { childList: true, subtree: true });
     //***********************************************************
     // ******************** CTA DELETE button v popupu, vždy aktivní pro "enter" **************************
     (function() {
@@ -306,12 +402,36 @@ observer2.observe(document.body, { childList: true, subtree: true });
             if (deleteButton) {
                 deleteButton.focus();
                 console.log('Meiro Better WF: Tlačítko Delete bylo fokusováno.');
+
+                // Stop interval after successful focus
+                if (intervalId) {
+                    clearInterval(intervalId);
+                    const index = activeIntervals.indexOf(intervalId);
+                    if (index > -1) activeIntervals.splice(index, 1);
+                    intervalId = null;
+                }
             }
         }
 
         function tryFocusDeleteButton() {
-            clearInterval(intervalId);
+            if (intervalId) {
+                clearInterval(intervalId);
+                const index = activeIntervals.indexOf(intervalId);
+                if (index > -1) activeIntervals.splice(index, 1);
+            }
+
             intervalId = setInterval(focusDeleteButton, 50);
+            activeIntervals.push(intervalId);
+
+            // Stop after 2 seconds if unsuccessful
+            setTimeout(() => {
+                if (intervalId) {
+                    clearInterval(intervalId);
+                    const index = activeIntervals.indexOf(intervalId);
+                    if (index > -1) activeIntervals.splice(index, 1);
+                    intervalId = null;
+                }
+            }, 2000);
         }
 
         const modalObserver = new MutationObserver((mutations) => {
