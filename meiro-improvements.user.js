@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      2025-09-29
+// @version      1.1.0
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=meiro.io
-// @downloadURL  https://raw.githubusercontent.com/vojtaflorian/Meiro-Improvements/refs/heads/main/meiro-improvements.user.js
-// @updateURL    https://raw.githubusercontent.com/vojtaflorian/Meiro-Improvements/refs/heads/main/meiro-improvements.user.js
+// @downloadURL  https://raw.githubusercontent.com/vojtaflorian/Meiro-Improvements/refs/heads/main/meiro-improvements.user.js?v=@version
+// @updateURL    https://raw.githubusercontent.com/vojtaflorian/Meiro-Improvements/refs/heads/main/meiro-improvements.user.js?v=@version
 // @grant        none
 // ==/UserScript==
 
