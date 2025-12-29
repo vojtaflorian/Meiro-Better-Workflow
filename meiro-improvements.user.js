@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      1.1.0
+// @version      1.1.1
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -1377,7 +1377,7 @@
                 'ENn0I': ['width-fill-content'],
                 '_748bX': ['width-fill-content'],
                 'yHmIT': ['width-fill-content'],
-                'box-border': ['width-auto']
+                //,'box-border': ['width-auto']
             };
             
             this.logger.info('StyleManager', 'Style manager initialized');
@@ -1471,6 +1471,14 @@
                     .files .scrollable.files-content {
                         max-height: 350px !important;
                     }
+                    /* Journey blocks */
+                   ._8MLCv {
+                       white-space: normal !important;
+                       overflow: visible !important;
+                       text-overflow: unset !important;
+                       word-wrap: break-word;
+                       height: auto;
+                       }
                 `;
                 
                 document.head.appendChild(this.styleElement);
